@@ -159,3 +159,75 @@ print("  \(DIM)Legend:  \(GRN)✓ safe to delete\(R)\(DIM)   — always recreata
 print("           \(YEL)⚠ verify first\(R)\(DIM)     — old versions, check before removing")
 print("           \(CYN)✎ manual decision\(R)\(DIM)  — needs your judgement\(R)")
 print()
+
+// ── Cleanup script ────────────────────────────────────────────────────────
+
+// Collect unique cleanup commands grouped by safety
+var safeCommands:   [(cmd: String, label: String, bytes: Int64)] = []
+var softCommands:   [(cmd: String, label: String, bytes: Int64)] = []
+
+for result in activeResults {
+    for item in result.items where item.exists {
+        if let cmd = item.target.cleanup {
+            let entry = (cmd: cmd, label: item.target.label, bytes: item.bytes)
+            switch item.target.safety {
+            case .safe:   safeCommands.append(entry)
+            case .soft:   softCommands.append(entry)
+            case .manual: break
+            }
+        }
+        // Collect sub-item commands only if parent has no cleanup command
+        // (parent cmd already covers everything)
+        if item.target.cleanup == nil {
+            for sub in item.subItems where sub.bytes > 0 {
+                if let cmd = sub.cleanup {
+                    let entry = (cmd: cmd, label: sub.label, bytes: sub.bytes)
+                    switch sub.safety {
+                    case .safe:   safeCommands.append(entry)
+                    case .soft:   softCommands.append(entry)
+                    case .manual: break
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Deduplicate by command string
+func dedup(_ list: [(cmd: String, label: String, bytes: Int64)]) -> [(cmd: String, label: String, bytes: Int64)] {
+    var seen = Set<String>()
+    return list.filter { seen.insert($0.cmd).inserted }
+}
+
+let safeCmds = dedup(safeCommands)
+let softCmds = dedup(softCommands)
+
+if !safeCmds.isEmpty || !softCmds.isEmpty {
+    print("\(BOLD)\(hr("═"))\(R)")
+    print("  CLEANUP COMMANDS")
+    print(hr())
+
+    if !safeCmds.isEmpty {
+        let totalSafe = safeCmds.reduce(0) { $0 + $1.bytes }
+        print()
+        print("  \(GRN)\(BOLD)✓ Safe to run now\(R)  \(DIM)(\(fmtBytes(totalSafe)))\(R)")
+        print()
+        for entry in safeCmds {
+            print("    \(CYN)$ \(entry.cmd)\(R)  \(DIM)# \(entry.label)\(R)")
+        }
+    }
+
+    if !softCmds.isEmpty {
+        let totalSoft = softCmds.reduce(0) { $0 + $1.bytes }
+        print()
+        print("  \(YEL)\(BOLD)⚠ Verify first\(R)  \(DIM)(\(fmtBytes(totalSoft)))\(R)")
+        print()
+        for entry in softCmds {
+            print("    \(CYN)$ \(entry.cmd)\(R)  \(DIM)# \(entry.label)\(R)")
+        }
+    }
+
+    print()
+    print("\(BOLD)\(hr("═"))\(R)")
+    print()
+}
