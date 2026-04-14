@@ -2,6 +2,9 @@
 
 A fast, native macOS CLI that finds developer disk hogs — build caches, SDK versions, emulator images, package caches — and tells you exactly what's safe to delete.
 
+> [!NOTE]
+> **DevScout never deletes anything.** It only shows what's there and suggests commands — you decide what to run.
+
 ```
 ══════════════════════════════════════════════════════════════
   DevScout · Developer Disk Analyzer · macOS
@@ -89,8 +92,6 @@ Then just run `devscout` from anywhere.
 - Measures each path with `du -sk` (fast, consistent with Finder)
 - Deep-analysis runs concurrently within each category
 - No network access, no sudo, read-only
-
-**DevScout never deletes anything.** It only shows what's there and suggests commands — you decide what to run.
 
 ## Adding a new category
 
