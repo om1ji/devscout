@@ -310,6 +310,59 @@ struct RbenvVersionsAnalyzer: SubAnalyzer {
     }
 }
 
+// MARK: - Ollama models
+
+struct OllamaModelsAnalyzer: SubAnalyzer {
+    func analyze(basePath: String) -> [SubItem] {
+        let manifestsPath = basePath + "/manifests"
+        guard FileManager.default.fileExists(atPath: manifestsPath),
+              let enumerator = FileManager.default.enumerator(atPath: manifestsPath) else { return [] }
+
+        var items: [SubItem] = []
+
+        for case let relativePath as String in enumerator {
+            let fullPath = manifestsPath + "/" + relativePath
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: fullPath, isDirectory: &isDir),
+                  !isDir.boolValue else { continue }
+
+            // Each manifest is a JSON file describing one model tag
+            guard let data = FileManager.default.contents(atPath: fullPath),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+
+            // Sum sizes from config + all layers
+            var totalSize: Int64 = 0
+            if let config = json["config"] as? [String: Any],
+               let size = config["size"] as? Int {
+                totalSize += Int64(size)
+            }
+            if let layers = json["layers"] as? [[String: Any]] {
+                for layer in layers {
+                    if let size = layer["size"] as? Int { totalSize += Int64(size) }
+                }
+            }
+            guard totalSize > 0 else { continue }
+
+            // Path: <registry>/<namespace>/<model>/<tag> — show as "model:tag"
+            let parts = relativePath.components(separatedBy: "/")
+            let name = parts.count >= 2
+                ? "\(parts[parts.count - 2]):\(parts[parts.count - 1])"
+                : relativePath
+
+            items.append(SubItem(
+                label: name,
+                path: fullPath,
+                bytes: totalSize,
+                hint: "LLM model",
+                cleanup: "ollama rm \(name)",
+                safety: .manual
+            ))
+        }
+
+        return items.sorted { $0.bytes > $1.bytes }
+    }
+}
+
 // MARK: - Helper
 
 private func nonZero(_ b: Int64) -> Int64? {

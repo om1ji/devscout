@@ -255,6 +255,16 @@ let allCategories: [Category] = [
               safety: .safe),
     ]),
 
+    // ── Ollama ─────────────────────────────────────────────────────────────
+    .init(name: "Ollama", icon: "🦙", targets: [
+        .init(label: "models",
+              path: "\(HOME)/.ollama/models",
+              hint: "Downloaded LLM models (weights + manifests)",
+              cleanup: "ollama list",
+              safety: .manual,
+              subAnalyzer: OllamaModelsAnalyzer()),
+    ]),
+
     // ── Docker ─────────────────────────────────────────────────────────────
     .init(name: "Docker", icon: "🐳", targets: [
         .init(label: "Docker data",
