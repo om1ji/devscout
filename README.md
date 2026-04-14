@@ -86,6 +86,14 @@ cp .build/release/devscout /usr/local/bin/devscout
 
 Then just run `devscout` from anywhere.
 
+## Roadmap
+
+- [ ] **Windows support** ([#1](https://github.com/om1ji/devscout/issues/1)) — rewrite in Rust/Go for true cross-platform support with Windows-specific paths (NuGet, Visual Studio cache, etc.)
+- [ ] `--json` output for scripting and third-party integrations
+- [ ] `node_modules` scanner — find and sum across project directories
+- [ ] Minimum size threshold flag (`--min 100mb`) to hide noise
+- [ ] `--category <name>` flag to scan a single category
+
 ## How it works
 
 - Scans all categories **in parallel** using GCD
